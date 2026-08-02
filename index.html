@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f0e8">
+  <meta name="description" content="一週間だけ残ればよい写真を、自分のGoogle Driveへ預ける一時保存カメラ。">
+  <title>7D CAMERA</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="7D CAMERA ホーム">
+        <span class="brand-mark" aria-hidden="true">7D</span>
+        <span class="brand-copy">
+          <strong>CAMERA</strong>
+          <small>写真にも、消費期限を。</small>
+        </span>
+      </a>
+      <div class="topbar-actions">
+        <button id="shareButton" class="icon-text-button" type="button" aria-label="7D CAMERAを共有">共有</button>
+        <button id="connectButton" class="connect-button" type="button">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="connectLabel">Googleで始める</span>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="heroTitle">
+        <div class="hero-copy">
+          <p class="eyebrow">TEMPORARY PHOTO STORAGE</p>
+          <h1 id="heroTitle">一週間だけ、<br>覚えておく。</h1>
+          <p class="hero-description">
+            駐車位置、値札、伝票、分解前の記録。<br>
+            通常の写真一覧に混ぜず、自分のGoogle Driveへ預けます。
+          </p>
+        </div>
+
+        <button id="cameraButton" class="camera-button" type="button" aria-label="写真を撮る">
+          <span class="camera-ring" aria-hidden="true">
+            <span class="camera-lens"></span>
+          </span>
+          <span class="camera-label">撮る</span>
+        </button>
+        <input id="cameraInput" class="visually-hidden" type="file" accept="image/*" capture="environment">
+
+        <div class="expiry-strip" aria-label="保存ルール">
+          <div>
+            <span class="expiry-number">7</span>
+            <span class="expiry-unit">DAYS</span>
+          </div>
+          <p>期限を過ぎた写真は、<br>次に開いた時にゴミ箱へ移動</p>
+        </div>
+      </section>
+
+      <section class="how-it-works" aria-label="使い方">
+        <div><span>1</span><p>Googleで接続</p></div>
+        <div><span>2</span><p>写真を撮る</p></div>
+        <div><span>3</span><p>必要ならKEEP</p></div>
+      </section>
+
+      <section class="library" aria-labelledby="libraryTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">EXPIRING SOON</p>
+            <h2 id="libraryTitle">一時保存中</h2>
+          </div>
+          <div class="section-actions">
+            <button id="refreshButton" class="text-button" type="button" disabled>更新</button>
+            <button id="installButton" class="text-button" type="button">アプリとして使う</button>
+          </div>
+        </div>
+
+        <div id="summaryBar" class="summary-bar" hidden>
+          <span id="photoCount">0枚</span>
+          <span id="urgentCount">今日まで 0枚</span>
+        </div>
+
+        <div id="emptyState" class="empty-state">
+          <div class="empty-symbol" aria-hidden="true">○</div>
+          <p id="emptyTitle">Googleで始めてください</p>
+          <small id="emptyText">写真は、このアプリが作る専用フォルダだけで管理します。</small>
+        </div>
+
+        <div id="photoGrid" class="photo-grid" aria-live="polite"></div>
+      </section>
+
+      <section class="principle">
+        <p class="eyebrow">PRINCIPLE</p>
+        <blockquote>保存しないのではない。<br>役目が終わるまで預ける。</blockquote>
+      </section>
+    </main>
+
+    <footer>
+      <span>7D CAMERA <b>v0.2.3</b></span>
+      <nav aria-label="法的情報">
+        <a href="privacy.html">プライバシー</a>
+        <a href="terms.html">利用規約</a>
+      </nav>
+    </footer>
+  </div>
+
+  <dialog id="captureDialog" class="capture-dialog">
+    <form method="dialog" class="dialog-card">
+      <div class="dialog-image-wrap">
+        <img id="capturePreview" alt="撮影した写真の確認">
+        <span class="preview-badge">あと7日</span>
+      </div>
+      <div class="dialog-copy">
+        <p class="eyebrow">CONFIRM</p>
+        <h2>この写真を預けますか？</h2>
+        <p>あなたのGoogle Driveの「7D CAMERA」へ保存します。期限後は、次回起動時にゴミ箱へ移します。</p>
+      </div>
+      <div class="dialog-actions">
+        <button id="retakeButton" class="secondary-button" value="cancel" type="submit">撮り直す</button>
+        <button id="saveButton" class="primary-button" value="default" type="button">Driveへ保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="confirmDialog" class="confirm-dialog">
+    <form method="dialog" class="dialog-card compact">
+      <div class="dialog-copy">
+        <p class="eyebrow">CONFIRM</p>
+        <h2 id="confirmTitle">写真を削除しますか？</h2>
+        <p id="confirmText">Google Driveのゴミ箱へ移します。</p>
+      </div>
+      <div class="dialog-actions">
+        <button class="secondary-button" value="cancel" type="submit">やめる</button>
+        <button id="confirmActionButton" class="danger-button" value="default" type="button">ゴミ箱へ</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="installDialog" class="confirm-dialog">
+    <form method="dialog" class="dialog-card compact">
+      <div class="dialog-copy">
+        <p class="eyebrow">INSTALL</p>
+        <h2 id="installTitle">ホーム画面に追加</h2>
+        <p id="installText">ブラウザのメニューからホーム画面へ追加できます。</p>
+      </div>
+      <div class="dialog-actions single-action">
+        <button class="primary-button" value="close" type="submit">わかりました</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="loadingOverlay" class="loading-overlay" hidden>
+    <div class="loader" aria-hidden="true"></div>
+    <p id="loadingText">処理しています</p>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <template id="photoCardTemplate">
+    <article class="photo-card">
+      <div class="photo-frame">
+        <div class="photo-placeholder" aria-hidden="true"></div>
+        <img class="photo-image" alt="一時保存中の写真" loading="lazy">
+        <span class="days-badge"></span>
+      </div>
+      <div class="photo-meta">
+        <time class="photo-date"></time>
+        <div class="photo-actions">
+          <button class="keep-button" type="button">KEEP</button>
+          <button class="trash-button" type="button" aria-label="ゴミ箱へ移す">削除</button>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <script src="config.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+7D CAMERA 公開チェックリスト
+
+[ ] Google Drive APIを有効化
+[ ] OAuth User typeをExternalに設定
+[ ] OAuthクライアントIDをconfig.jsへ貼り付け
+[ ] 本番URLを承認済みJavaScript生成元へ追加
+[ ] ホームページURLを登録
+[ ] privacy.htmlのURLを登録
+[ ] terms.htmlのURLを登録
+[ ] OAuthをTestingから本番公開へ変更
+[ ] iPhone Safariで撮影・保存・KEEPを確認
+[ ] Android Chromeで撮影・保存・KEEPを確認
+[ ] iPhoneのホーム画面追加を確認
+[ ] Androidのインストールを確認
+[ ] 共有ボタンからURLを送れることを確認
+[ ] Google Driveのゴミ箱へ移ることを確認

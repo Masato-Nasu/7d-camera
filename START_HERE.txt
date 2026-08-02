@@ -1,0 +1,26 @@
+7D CAMERA v0.2.3 PUBLIC — 最初にすること
+
+この設定をするのは配布者だけです。
+アプリを使う人は、URLを開いてGoogleで許可するだけです。
+
+1. PowerShellで次を実行し、公開URLを先に作る
+
+   Set-ExecutionPolicy -Scope Process Bypass
+   .\deploy_7D_CAMERA.ps1
+
+2. README.md の「公開者が一度だけ行う設定」を開く
+3. Google Drive APIを有効化する
+4. OAuthクライアントID（ウェブアプリ）を1個作る
+5. 公開URLをOAuthの承認済みJavaScript生成元へ登録する
+6. config.jsへクライアントIDを貼る
+7. OAuthアプリを「外部」「本番環境」に公開する
+8. 同じPowerShellスクリプトをもう一度実行する
+9. URLを共有する
+
+利用者側の手順
+URLを開く → Googleで始める → 許可 → 撮る
+
+重要
+静的PWAのため、期限切れ写真は「7日後の次回起動時」に
+Google Driveのゴミ箱へ移ります。アプリを閉じたままでも
+毎日厳密に削除する仕組みには、別途サーバーが必要です。
