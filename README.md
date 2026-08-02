@@ -58,63 +58,6 @@ LINE、Instagram、Gmailなどのアプリ内ブラウザではPWAを追加で�
 
 静的なHTML、CSS、JavaScriptだけで動作します。専用のアプリサーバーやデータベースは使用しません。
 
-## 自分の環境へデプロイする
-
-### 1. Google Drive APIを有効化
-
-Google Cloudでプロジェクトを選び、「APIとサービス」からGoogle Drive APIを有効にします。
-
-![Google CloudのAPIとサービス画面](docs/images/google-api-services.png)
-
-### 2. Google Auth Platformを設定
-
-1. アプリ名を`7D CAMERA`に設定
-2. ユーザーの種類を「外部」に設定
-3. OAuthクライアントを「ウェブ アプリケーション」で作成
-4. 承認済みJavaScript生成元へ本番URLを登録
-
-```text
-https://your-project.pages.dev
-```
-
-生成元には末尾の`/`やページ名を付けません。リダイレクトURIは不要です。
-
-### 3. クライアントIDを設定
-
-`config.js`の`GOOGLE_CLIENT_ID`を、自分のウェブ用OAuthクライアントIDへ変更します。
-
-```js
-window.SEVEN_D_CONFIG = {
-  GOOGLE_CLIENT_ID: "YOUR_CLIENT_ID.apps.googleusercontent.com",
-  EXPIRY_DAYS: 7,
-  ROOT_FOLDER_NAME: "7D CAMERA",
-  KEEP_FOLDER_NAME: "KEEP"
-};
-```
-
-OAuthクライアントIDはブラウザへ配布される公開識別子であり、クライアントシークレットではありません。クライアントシークレットをこのリポジトリへ保存しないでください。
-
-### 4. OAuthアプリを公開
-
-Google Auth Platformの「対象」で、公開ステータスを本番環境へ変更します。テスト中のままでは、登録したテストユーザー以外は`403: access_denied`になります。
-
-![OAuthアプリの本番公開状態](docs/images/oauth-production.png)
-
-Googleの審査やユーザー数上限が表示された場合は、Google Auth Platformに表示される最新の案内に従ってください。
-
-### 5. Cloudflare Pagesへデプロイ
-
-PowerShellでプロジェクトフォルダを開き、Wranglerへログインしてデプロイします。
-
-```powershell
-npx.cmd --yes wrangler@latest login
-npx.cmd --yes wrangler@latest pages deploy . --project-name 7d-camera --branch main
-```
-
-![Wranglerの認証完了画面](docs/images/wrangler-authorized.png)
-
-Cloudflareのダッシュボードから「Workers & Pages」→ 対象プロジェクト →「Create deployment」を選び、フォルダを直接アップロードすることもできます。
-
 ## 削除タイミング
 
 この公開版は静的PWAです。ブラウザを閉じている間はGoogle Driveへアクセスできません。
