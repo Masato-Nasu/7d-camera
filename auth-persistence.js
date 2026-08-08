@@ -1,122 +1,119 @@
 (() => {
   "use strict";
 
-  const TOKEN_KEY = "7d_google_access_token";
-  const EXPIRES_KEY = "7d_google_access_token_expires_at";
   const CONSENT_KEY = "7d_google_consent";
-  const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
-  const EARLY_EXPIRY_MS = 60_000;
+  const LEGACY_TOKEN_KEY = "7d_google_access_token";
+  const LEGACY_EXPIRES_KEY = "7d_google_access_token_expires_at";
+  const SESSION_ENDPOINT = "/api/oauth/session";
+  const START_ENDPOINT = "/api/oauth/start";
 
-  function clearCachedToken() {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(EXPIRES_KEY);
+  let autoRestore = localStorage.getItem(CONSENT_KEY) === "1";
+  let restoreTriggered = false;
+
+  const currentUrl = new URL(window.location.href);
+  if (currentUrl.searchParams.get("oauth") === "connected") {
+    localStorage.setItem(CONSENT_KEY, "1");
+    autoRestore = true;
+    currentUrl.searchParams.delete("oauth");
+    history.replaceState(null, "", `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
   }
 
-  function readCachedToken() {
-    const accessToken = localStorage.getItem(TOKEN_KEY) || "";
-    const expiresAt = Number(localStorage.getItem(EXPIRES_KEY) || 0);
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+  localStorage.removeItem(LEGACY_EXPIRES_KEY);
 
-    if (!accessToken || !Number.isFinite(expiresAt) || Date.now() >= expiresAt) {
-      clearCachedToken();
-      return null;
+  function startPersistentOAuth() {
+    window.location.assign(START_ENDPOINT);
+  }
+
+  async function requestServerAccessToken() {
+    const response = await fetch(SESSION_ENDPOINT, {
+      method: "POST",
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: { "X-Requested-With": "XMLHttpRequest" }
+    });
+
+    if (response.status === 401) return null;
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      if (response.status === 503) {
+        throw new Error("Cloudflare側のGoogle Client Secretが未設定です");
+      }
+      throw new Error(data?.error || `Googleセッション更新エラー (${response.status})`);
     }
-
-    return {
-      access_token: accessToken,
-      expires_in: Math.max(1, Math.floor((expiresAt - Date.now()) / 1000)),
-      scope: DRIVE_SCOPE,
-      token_type: "Bearer"
-    };
+    if (!data?.access_token) throw new Error("Googleアクセストークンを取得できませんでした");
+    return data;
   }
 
-  function rememberToken(response) {
-    if (!response?.access_token) return;
-
-    const expiresIn = Math.max(60, Number(response.expires_in || 3600));
-    const expiresAt = Date.now() + expiresIn * 1000 - EARLY_EXPIRY_MS;
-    localStorage.setItem(TOKEN_KEY, response.access_token);
-    localStorage.setItem(EXPIRES_KEY, String(expiresAt));
-  }
-
-  function wrapGoogleTokenClient() {
+  function installPersistentTokenClient() {
     const oauth2 = window.google?.accounts?.oauth2;
-    if (!oauth2 || oauth2.__sevenDPersistenceWrapped) return false;
-
-    const originalInitTokenClient = oauth2.initTokenClient.bind(oauth2);
+    if (!oauth2 || oauth2.__sevenDServerSessionWrapped) return false;
 
     oauth2.initTokenClient = config => {
-      let activeCallback = typeof config.callback === "function" ? config.callback : () => {};
+      let activeCallback = typeof config?.callback === "function" ? config.callback : () => {};
 
-      const client = originalInitTokenClient({
-        ...config,
-        callback: response => {
-          rememberToken(response);
-          activeCallback(response);
-        }
-      });
+      const client = {
+        requestAccessToken(overrideConfig = {}) {
+          const prompt = String(overrideConfig?.prompt || "");
+          const hasConsent = localStorage.getItem(CONSENT_KEY) === "1";
 
-      return new Proxy(client, {
-        get(target, property, receiver) {
-          if (property === "callback") return activeCallback;
+          if (!hasConsent || prompt.includes("consent")) {
+            startPersistentOAuth();
+            return;
+          }
 
-          if (property === "requestAccessToken") {
-            return overrideConfig => {
-              const cachedToken = readCachedToken();
-              if (cachedToken) {
-                queueMicrotask(() => activeCallback(cachedToken));
+          requestServerAccessToken()
+            .then(tokenResponse => {
+              if (!tokenResponse) {
+                startPersistentOAuth();
                 return;
               }
-              return target.requestAccessToken.call(target, overrideConfig);
-            };
-          }
+              activeCallback(tokenResponse);
+            })
+            .catch(error => {
+              console.error("7D CAMERA persistent auth failed", error);
+              activeCallback({
+                error: "persistent_auth_failed",
+                error_description: error.message
+              });
+            });
+        }
+      };
 
-          const value = Reflect.get(target, property, receiver);
-          return typeof value === "function" ? value.bind(target) : value;
+      Object.defineProperty(client, "callback", {
+        configurable: true,
+        enumerable: true,
+        get() {
+          return activeCallback;
         },
-
-        set(target, property, value, receiver) {
-          if (property === "callback") {
-            activeCallback = typeof value === "function" ? value : () => {};
-            target.callback = response => {
-              rememberToken(response);
-              activeCallback(response);
-            };
-            return true;
-          }
-          return Reflect.set(target, property, value, receiver);
+        set(value) {
+          activeCallback = typeof value === "function" ? value : () => {};
         }
       });
+
+      if (autoRestore && !restoreTriggered) {
+        restoreTriggered = true;
+        window.setTimeout(() => {
+          const connectButton = document.querySelector("#connectButton");
+          const connectLabel = document.querySelector("#connectLabel");
+          if (!connectButton || connectLabel?.textContent === "接続済み") return;
+          connectButton.click();
+        }, 0);
+      }
+
+      return client;
     };
 
-    oauth2.__sevenDPersistenceWrapped = true;
+    oauth2.__sevenDServerSessionWrapped = true;
     return true;
   }
 
-  const originalFetch = window.fetch.bind(window);
-  window.fetch = async (input, init) => {
-    const response = await originalFetch(input, init);
-    const url = typeof input === "string" ? input : input?.url || "";
-
-    if (response.status === 401 && url.includes("googleapis.com") && url.includes("drive")) {
-      clearCachedToken();
-    }
-
-    return response;
-  };
-
-  if (!wrapGoogleTokenClient()) {
-    console.warn("7D CAMERA: Google Identity Services was not ready for session persistence");
+  if (!installPersistentTokenClient()) {
+    const started = Date.now();
+    const timer = window.setInterval(() => {
+      if (installPersistentTokenClient() || Date.now() - started > 15_000) {
+        clearInterval(timer);
+      }
+    }, 50);
   }
-
-  window.addEventListener("DOMContentLoaded", () => {
-    if (localStorage.getItem(CONSENT_KEY) !== "1") return;
-    if (!readCachedToken()) return;
-
-    window.setTimeout(() => {
-      const connectButton = document.querySelector("#connectButton");
-      const connectLabel = document.querySelector("#connectLabel");
-      if (!connectButton || connectLabel?.textContent === "接続済み") return;
-      connectButton.click();
-    }, 350);
-  });
 })();
