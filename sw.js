@@ -1,4 +1,4 @@
-const CACHE_NAME = "7d-camera-v0.2.4";
+const CACHE_NAME = "7d-camera-v0.3.0";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -29,6 +29,7 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
   const url = new URL(event.request.url);
+  if (url.pathname.startsWith("/api/")) return;
   if (event.request.method !== "GET" || url.origin !== self.location.origin) return;
 
   event.respondWith(
