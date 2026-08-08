@@ -1,4 +1,4 @@
-const CACHE_NAME = "7d-camera-v0.2.3";
+const CACHE_NAME = "7d-camera-v0.2.4";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -6,6 +6,7 @@ const APP_SHELL = [
   "./terms.html",
   "./styles.css",
   "./config.js",
+  "./auth-persistence.js",
   "./app.js",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
